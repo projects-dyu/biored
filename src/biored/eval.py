@@ -9,9 +9,14 @@ Deliberate differences (they only matter on test, never on dev):
 - the official script crashes on a gold relation whose ID has no mention; here it is a false negative
 - the official script gives "-" the type of the last unnormalized mention; here "-" has no type
 """
+import json
+import numpy as np
+from pathlib import Path
+
+from biored.data import Relation
 from __future__ import annotations
 
-import numpy as np
+
 
 REL_TYPES = ("Association", "Bind", "Comparison", "Conversion", "Cotreatment",
              "Drug_Interaction", "Negative_Correlation", "Positive_Correlation")
@@ -149,3 +154,26 @@ def bootstrap(ca: np.ndarray, cb: np.ndarray | None = None, n: int = 10_000, see
         out["diff_ci95"] = np.percentile(d, [2.5, 97.5]).tolist()
         out["p_two_sided"] = float(min(1.0, 2 * min((d <= 0).mean(), (d >= 0).mean())))
     return out
+
+def save_preds(pred: dict, path) -> None:
+    """One JSON line per relation: pmid, e1, e2, type, novel. IDs and labels only, so safe to
+    commit under results/preds/. Pairs are written in pair_key order so git diffs stay stable."""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        for pm in sorted(pred):
+            for r in sorted(pred[pm], key=lambda r: (pair_key(r), r.type, r.novel)):
+                e1, e2 = pair_key(r)
+                f.write(json.dumps({"pmid": pm, "e1": e1, "e2": e2,
+                                    "type": r.type, "novel": r.novel}) + "\n")
+
+
+def load_preds(path) -> dict:
+    """Inverse of save_preds: {pmid: [Relation]}. A document with no lines has no predictions,
+    which count_matrix already treats as an empty list."""
+    pred: dict = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                x = json.loads(line)
+                pred.setdefault(x["pmid"], []).append(Relation(x["e1"], x["e2"], x["type"], x["novel"]))
+    return pred
