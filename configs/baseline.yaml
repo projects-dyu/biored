@@ -1,0 +1,10 @@
+model: cooccurrence
+same_sentence_only: true
+chosen_on: dev
+metric: micro_f1_pair_type
+dev_micro_f1_pair_type:
+  same0: 0.1752
+  same1: 0.2967
+dev_diff_same1_minus_same0_ci95:
+- 0.0825
+- 0.157

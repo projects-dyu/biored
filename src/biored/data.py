@@ -1,4 +1,5 @@
 """src/biored/data.py"""
+
 from __future__ import annotations
 
 import re
@@ -6,8 +7,16 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
 
-REL_TYPES = ["Association", "Positive_Correlation", "Negative_Correlation", "Bind",
-             "Cotreatment", "Comparison", "Drug_Interaction", "Conversion"]
+REL_TYPES = [
+    "Association",
+    "Positive_Correlation",
+    "Negative_Correlation",
+    "Bind",
+    "Cotreatment",
+    "Comparison",
+    "Drug_Interaction",
+    "Conversion",
+]
 NOVELTY = ["No", "Novel"]
 TYPE_ALIASES = {"Organism": "OrganismTaxon"}
 
@@ -17,7 +26,7 @@ _ID_SEP = re.compile(r"[,;]")
 
 @dataclass
 class Mention:
-    start: int   # character offsets into Doc.text
+    start: int  # character offsets into Doc.text
     end: int
     text: str
 
@@ -34,7 +43,7 @@ class Relation:
     e1: str
     e2: str
     type: str
-    novel: str   # "Novel" or "No"
+    novel: str  # "Novel" or "No"
 
     @property
     def key(self) -> tuple[str, str]:
@@ -48,7 +57,7 @@ class Doc:
     entities: dict[str, Entity] = field(default_factory=dict)
     relations: list[Relation] = field(default_factory=list)
     title_end: int = 0
-    n_mention_lines: int = 0                       # raw count, comparable with inventory.py
+    n_mention_lines: int = 0  # raw count, comparable with inventory.py
     directions: list[tuple[str, ...]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -63,7 +72,9 @@ def split_ids(raw: str) -> list[str]:
     return [x.strip() for x in _ID_SEP.split(raw) if x.strip() and x.strip() != "-"]
 
 
-def _add_mention(doc: Doc, raw_id: str, etype: str, start: int, end: int, text: str) -> None:
+def _add_mention(
+    doc: Doc, raw_id: str, etype: str, start: int, end: int, text: str
+) -> None:
     etype = norm_type(etype)
     ids = split_ids(raw_id)
     if not ids:
@@ -72,7 +83,9 @@ def _add_mention(doc: Doc, raw_id: str, etype: str, start: int, end: int, text: 
     for eid in ids:
         ent = doc.entities.setdefault(eid, Entity(eid, etype))
         if ent.type != etype:
-            doc.warnings.append(f"type_conflict\t{eid}\t{ent.type} vs {etype} (kept {ent.type})")
+            doc.warnings.append(
+                f"type_conflict\t{eid}\t{ent.type} vs {etype} (kept {ent.type})"
+            )
         if all((m.start, m.end) != (start, end) for m in ent.mentions):
             ent.mentions.append(Mention(start, end, text))
 
@@ -102,14 +115,20 @@ def load_pubtator(path: str | Path) -> list[Doc]:
                 cur = Doc(pmid, body, title_end=len(body))
                 docs.append(cur)
             else:
-                assert cur is not None and cur.pmid == pmid, f"{path}:{n}: abstract without its title"
-                cur.text = f"{cur.text} {body}"   # PubTator abstract offsets start at len(title) + 1
+                assert cur is not None and cur.pmid == pmid, (
+                    f"{path}:{n}: abstract without its title"
+                )
+                cur.text = f"{cur.text} {body}"  # PubTator abstract offsets start at len(title) + 1
             continue
         f = line.split("\t")
-        assert cur is not None and f[0] == cur.pmid, f"{path}:{n}: line for {f[0]} outside its document"
+        assert cur is not None and f[0] == cur.pmid, (
+            f"{path}:{n}: line for {f[0]} outside its document"
+        )
         if len(f) >= 5 and f[1].isdigit() and f[2].isdigit():
             cur.n_mention_lines += 1
-            _add_mention(cur, f[5] if len(f) > 5 else "", f[4], int(f[1]), int(f[2]), f[3])
+            _add_mention(
+                cur, f[5] if len(f) > 5 else "", f[4], int(f[1]), int(f[2]), f[3]
+            )
         elif len(f) >= 5:
             _add_relation(cur, f[1], f[2], f[3], f[4])
         elif len(f) == 4:
@@ -120,7 +139,8 @@ def load_pubtator(path: str | Path) -> list[Doc]:
 
 
 def load_bioc_xml(path: str | Path) -> list[Doc]:
-    from bioc import biocxml   # imported here so the serving image doesn't need bioc
+    from bioc import biocxml  # imported here so the serving image doesn't need bioc
+
     with open(path, encoding="utf-8") as fp:
         collection = biocxml.load(fp)
     docs = []
@@ -128,38 +148,55 @@ def load_bioc_xml(path: str | Path) -> list[Doc]:
         size = max(p.offset + len(p.text or "") for p in d.passages)
         chars = [" "] * size
         for p in d.passages:
-            chars[p.offset:p.offset + len(p.text or "")] = list(p.text or "")
+            chars[p.offset : p.offset + len(p.text or "")] = list(p.text or "")
         doc = Doc(d.id, "".join(chars), title_end=len(d.passages[0].text or ""))
         for p in d.passages:
             for a in p.annotations:
                 doc.n_mention_lines += 1
                 for loc in a.locations:
-                    _add_mention(doc, a.infons.get("identifier", ""), a.infons.get("type", ""),
-                                 loc.offset, loc.offset + loc.length, a.text)
+                    _add_mention(
+                        doc,
+                        a.infons.get("identifier", ""),
+                        a.infons.get("type", ""),
+                        loc.offset,
+                        loc.offset + loc.length,
+                        a.text,
+                    )
         for r in list(d.relations) + [r for p in d.passages for r in p.relations]:
             inf = r.infons
             if not {"entity1", "entity2", "type"} <= inf.keys():
                 doc.warnings.append(f"relation_infons\t{sorted(inf)}")
                 continue
-            _add_relation(doc, inf["type"], inf["entity1"], inf["entity2"], inf.get("novel", "No"))
+            _add_relation(
+                doc, inf["type"], inf["entity1"], inf["entity2"], inf.get("novel", "No")
+            )
         docs.append(doc)
     return docs
 
 
 def load_any(path: str | Path) -> list[Doc]:
-    return load_bioc_xml(path) if str(path).lower().endswith(".xml") else load_pubtator(path)
+    return (
+        load_bioc_xml(path)
+        if str(path).lower().endswith(".xml")
+        else load_pubtator(path)
+    )
 
 
-def load_config(path: str | Path = "configs/data.yaml", root: str | Path | None = None) -> dict[str, list[str]]:
+def load_config(
+    path: str | Path = "configs/data.yaml", root: str | Path | None = None
+) -> dict[str, list[str]]:
     """Read split -> file names. `root` overrides the config's root, e.g. /kaggle/input/biored-re-splits."""
     import yaml
+
     cfg = yaml.safe_load(Path(path).read_text())
     base = Path(root or cfg.get("root", "."))
     return {s: [str(base / f) for f in cfg[s]] for s in ("train", "dev", "test")}
 
 
 def load_splits(paths: dict[str, list[str]]) -> dict[str, list[Doc]]:
-    splits = {name: [d for p in files for d in load_any(p)] for name, files in paths.items()}
+    splits = {
+        name: [d for p in files for d in load_any(p)] for name, files in paths.items()
+    }
     seen: dict[str, str] = {}
     for name, docs in splits.items():
         for d in docs:
@@ -173,13 +210,20 @@ def type_combo(doc: Doc, a: str, b: str) -> tuple[str, str]:
 
 
 def allowed_type_pairs(train: list[Doc]) -> set[tuple[str, str]]:
-    return {type_combo(d, r.e1, r.e2) for d in train for r in d.relations
-            if r.e1 in d.entities and r.e2 in d.entities}
+    return {
+        type_combo(d, r.e1, r.e2)
+        for d in train
+        for r in d.relations
+        if r.e1 in d.entities and r.e2 in d.entities
+    }
 
 
 def candidate_pairs(doc: Doc, allowed: set[tuple[str, str]]) -> list[tuple[str, str]]:
-    return [(a, b) for a, b in combinations(sorted(doc.entities), 2)
-            if type_combo(doc, a, b) in allowed]
+    return [
+        (a, b)
+        for a, b in combinations(sorted(doc.entities), 2)
+        if type_combo(doc, a, b) in allowed
+    ]
 
 
 _SENT_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(\[])")

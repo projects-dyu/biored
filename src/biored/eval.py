@@ -9,30 +9,42 @@ Deliberate differences (they only matter on test, never on dev):
 - the official script crashes on a gold relation whose ID has no mention; here it is a false negative
 - the official script gives "-" the type of the last unnormalized mention; here "-" has no type
 """
-import json
-import numpy as np
-from pathlib import Path
 
-from biored.data import Relation
 from __future__ import annotations
 
+import json
+from pathlib import Path
 
+import numpy as np
 
-REL_TYPES = ("Association", "Bind", "Comparison", "Conversion", "Cotreatment",
-             "Drug_Interaction", "Negative_Correlation", "Positive_Correlation")
+from biored.data import Relation
+
+REL_TYPES = (
+    "Association",
+    "Bind",
+    "Comparison",
+    "Conversion",
+    "Cotreatment",
+    "Drug_Interaction",
+    "Negative_Correlation",
+    "Positive_Correlation",
+)
 NOVELTY = ("Novel", "No")
 
 # The eight entity-type pairs BC8 scores (CodaLab competition overview).
-BC8_PAIRS = {frozenset(p) for p in [
-    ("DiseaseOrPhenotypicFeature", "GeneOrGeneProduct"),
-    ("ChemicalEntity", "DiseaseOrPhenotypicFeature"),
-    ("DiseaseOrPhenotypicFeature", "SequenceVariant"),
-    ("ChemicalEntity", "ChemicalEntity"),
-    ("ChemicalEntity", "GeneOrGeneProduct"),
-    ("GeneOrGeneProduct", "GeneOrGeneProduct"),
-    ("ChemicalEntity", "SequenceVariant"),
-    ("SequenceVariant", "SequenceVariant"),
-]}
+BC8_PAIRS = {
+    frozenset(p)
+    for p in [
+        ("DiseaseOrPhenotypicFeature", "GeneOrGeneProduct"),
+        ("ChemicalEntity", "DiseaseOrPhenotypicFeature"),
+        ("DiseaseOrPhenotypicFeature", "SequenceVariant"),
+        ("ChemicalEntity", "ChemicalEntity"),
+        ("ChemicalEntity", "GeneOrGeneProduct"),
+        ("GeneOrGeneProduct", "GeneOrGeneProduct"),
+        ("ChemicalEntity", "SequenceVariant"),
+        ("SequenceVariant", "SequenceVariant"),
+    ]
+}
 
 # Type pairs the official script skips in gold and predictions alike.
 # frozenset({"X"}) is the X-X pair.
@@ -66,7 +78,10 @@ def _scored(rels, types, only_type=None):
     for r in rels:
         if r.type == "None" or (only_type is not None and r.type != only_type):
             continue
-        if types is not None and frozenset({types.get(r.e1), types.get(r.e2)}) in EXCLUDED_PAIRS:
+        if (
+            types is not None
+            and frozenset({types.get(r.e1), types.get(r.e2)}) in EXCLUDED_PAIRS
+        ):
             continue
         out.append(r)
     return out
@@ -80,8 +95,13 @@ def doc_counts(gold, pred, level, types=None, only_type=None):
     return len(g & p), len(p - g), len(g - p)
 
 
-def count_matrix(gold: dict, pred: dict, level: str, types: dict | None = None,
-                 only_type: str | None = None) -> np.ndarray:
+def count_matrix(
+    gold: dict,
+    pred: dict,
+    level: str,
+    types: dict | None = None,
+    only_type: str | None = None,
+) -> np.ndarray:
     """One row per gold document, sorted by PMID: [tp, fp, fn].
 
     A document missing from `pred` has no predictions. Predictions for a PMID that is not
@@ -89,10 +109,19 @@ def count_matrix(gold: dict, pred: dict, level: str, types: dict | None = None,
     """
     extra = set(pred) - set(gold)
     if extra:
-        raise KeyError(f"predictions for {len(extra)} PMIDs not in gold, e.g. {sorted(extra)[:3]}")
-    rows = [doc_counts(gold[pm], pred.get(pm, []), level,
-                       None if types is None else types.get(pm, {}), only_type)
-            for pm in sorted(gold)]
+        raise KeyError(
+            f"predictions for {len(extra)} PMIDs not in gold, e.g. {sorted(extra)[:3]}"
+        )
+    rows = [
+        doc_counts(
+            gold[pm],
+            pred.get(pm, []),
+            level,
+            None if types is None else types.get(pm, {}),
+            only_type,
+        )
+        for pm in sorted(gold)
+    ]
     return np.array(rows, dtype=np.int64).reshape(-1, 3)
 
 
@@ -114,7 +143,7 @@ def score(gold: dict, pred: dict, types: dict | None = None) -> dict[str, float]
     per_type = {}
     for t in REL_TYPES:
         c = count_matrix(gold, pred, "pair_type", types, only_type=t).sum(0)
-        if c[0] + c[2] > 0:                       # the type occurs in the scored gold
+        if c[0] + c[2] > 0:  # the type occurs in the scored gold
             per_type[t] = float(f1(c))
     out["macro_f1_type"] = float(np.mean(list(per_type.values()))) if per_type else 0.0
     out.update({f"f1_{t}": v for t, v in per_type.items()})
@@ -133,14 +162,20 @@ def validate_preds(pred: dict, docs) -> None:
             raise ValueError(f"{pm}: more than one relation for the same pair")
         for r in rels:
             if r.type not in REL_TYPES:
-                raise ValueError(f"{pm}: type {r.type!r}; leave out 'None' pairs instead of writing them")
+                raise ValueError(
+                    f"{pm}: type {r.type!r}; leave out 'None' pairs instead of writing them"
+                )
             if r.novel not in NOVELTY:
                 raise ValueError(f"{pm}: novelty {r.novel!r}")
             if r.e1 == r.e2 or r.e1 not in ents[pm] or r.e2 not in ents[pm]:
-                raise ValueError(f"{pm}: {r.e1}-{r.e2} is not a pair of two annotated entities")
+                raise ValueError(
+                    f"{pm}: {r.e1}-{r.e2} is not a pair of two annotated entities"
+                )
 
 
-def bootstrap(ca: np.ndarray, cb: np.ndarray | None = None, n: int = 10_000, seed: int = 0) -> dict:
+def bootstrap(
+    ca: np.ndarray, cb: np.ndarray | None = None, n: int = 10_000, seed: int = 0
+) -> dict:
     """ca, cb: count_matrix outputs for the same documents in the same order."""
     if cb is not None and ca.shape != cb.shape:
         raise ValueError("ca and cb must cover the same documents")
@@ -155,6 +190,7 @@ def bootstrap(ca: np.ndarray, cb: np.ndarray | None = None, n: int = 10_000, see
         out["p_two_sided"] = float(min(1.0, 2 * min((d <= 0).mean(), (d >= 0).mean())))
     return out
 
+
 def save_preds(pred: dict, path) -> None:
     """One JSON line per relation: pmid, e1, e2, type, novel. IDs and labels only, so safe to
     commit under results/preds/. Pairs are written in pair_key order so git diffs stay stable."""
@@ -163,8 +199,18 @@ def save_preds(pred: dict, path) -> None:
         for pm in sorted(pred):
             for r in sorted(pred[pm], key=lambda r: (pair_key(r), r.type, r.novel)):
                 e1, e2 = pair_key(r)
-                f.write(json.dumps({"pmid": pm, "e1": e1, "e2": e2,
-                                    "type": r.type, "novel": r.novel}) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "pmid": pm,
+                            "e1": e1,
+                            "e2": e2,
+                            "type": r.type,
+                            "novel": r.novel,
+                        }
+                    )
+                    + "\n"
+                )
 
 
 def load_preds(path) -> dict:
@@ -175,5 +221,7 @@ def load_preds(path) -> dict:
         for line in f:
             if line.strip():
                 x = json.loads(line)
-                pred.setdefault(x["pmid"], []).append(Relation(x["e1"], x["e2"], x["type"], x["novel"]))
+                pred.setdefault(x["pmid"], []).append(
+                    Relation(x["e1"], x["e2"], x["type"], x["novel"])
+                )
     return pred

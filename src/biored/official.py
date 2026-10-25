@@ -5,6 +5,7 @@ The script comes from biored_re_source_code.tar on the BC8 FTP folder
 third_party/bc8_eval/run_biored_eval.py; the tested version has SHA-256
 74d71f00df3faf63d82418784f6f8a8543fb321df442237f3074ac584cc33021.
 """
+
 from __future__ import annotations
 
 import re
@@ -14,9 +15,14 @@ import sys
 import tempfile
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[2] / "third_party" / "bc8_eval" / "run_biored_eval.py"
+SCRIPT = (
+    Path(__file__).resolve().parents[2]
+    / "third_party"
+    / "bc8_eval"
+    / "run_biored_eval.py"
+)
 HEADER = re.compile(r"^([^|\t]+)\|[ta]\|")
-OUT_FILES = {   # the script's fixed output names -> our level names
+OUT_FILES = {  # the script's fixed output names -> our level names
     "pair": "biored_bin_score.txt",
     "pair_type": "biored_mul_score.txt",
     "pair_novelty": "biored_bin_novelty_score.txt",
@@ -54,7 +60,9 @@ def write_pubtator(template, preds: dict, path) -> None:
         for lines in _documents(template):
             m = HEADER.match(lines[0])
             if not m:
-                raise ValueError(f"document does not start with a title line: {lines[0][:60]!r}")
+                raise ValueError(
+                    f"document does not start with a title line: {lines[0][:60]!r}"
+                )
             pmid = m.group(1)
             seen.add(pmid)
             for line in lines:
@@ -71,7 +79,9 @@ def write_pubtator(template, preds: dict, path) -> None:
             f.write("\n")
     missing = set(preds) - seen
     if missing:
-        raise KeyError(f"predictions for {len(missing)} PMIDs not in the template, e.g. {sorted(missing)[:3]}")
+        raise KeyError(
+            f"predictions for {len(missing)} PMIDs not in the template, e.g. {sorted(missing)[:3]}"
+        )
 
 
 def run_official(gold_path, pred_path, script=SCRIPT) -> dict[str, dict]:
@@ -89,18 +99,42 @@ def run_official(gold_path, pred_path, script=SCRIPT) -> dict[str, dict]:
         # It also writes its four score files into the working directory.
         shutil.copyfile(pred_path, Path(tmp) / "biored_pred_mul.txt")
         res = subprocess.run(
-            [sys.executable, str(script), "--exp_option", "biored_eval",
-             "--in_gold_pubtator_file", str(Path(gold_path).resolve()),
-             "--in_pred_pubtator_file", "biored_pred_mul.txt"],
-            cwd=tmp, capture_output=True, text=True)
+            [
+                sys.executable,
+                str(script),
+                "--exp_option",
+                "biored_eval",
+                "--in_gold_pubtator_file",
+                str(Path(gold_path).resolve()),
+                "--in_pred_pubtator_file",
+                "biored_pred_mul.txt",
+            ],
+            cwd=tmp,
+            capture_output=True,
+            text=True,
+        )
         if res.returncode != 0:
             raise RuntimeError(
                 "official scorer failed. A KeyError usually means a relation ID with no mention, "
-                "a ';' ID list or a direction line in one of the files.\n" + res.stderr[-2000:])
+                "a ';' ID list or a direction line in one of the files.\n"
+                + res.stderr[-2000:]
+            )
         out = {}
         for level, name in OUT_FILES.items():
-            first = (Path(tmp) / name).read_text(encoding="utf-8").splitlines()[0].split("\t")
+            first = (
+                (Path(tmp) / name)
+                .read_text(encoding="utf-8")
+                .splitlines()[0]
+                .split("\t")
+            )
             _, n_gold, tp, fp, fn, p, r, f = first
-            out[level] = {"n_gold": int(n_gold), "tp": int(tp), "fp": int(fp), "fn": int(fn),
-                          "precision": float(p), "recall": float(r), "f1": float(f)}
+            out[level] = {
+                "n_gold": int(n_gold),
+                "tp": int(tp),
+                "fp": int(fp),
+                "fn": int(fn),
+                "precision": float(p),
+                "recall": float(r),
+                "f1": float(f),
+            }
         return out

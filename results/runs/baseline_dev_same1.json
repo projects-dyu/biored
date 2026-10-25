@@ -1,0 +1,34 @@
+{
+  "name": "baseline_dev_same1",
+  "time": "2026-10-25T20:58:04",
+  "commit": "8cc6ffe",
+  "params": {
+    "model": "cooccurrence",
+    "split": "dev",
+    "same_sentence_only": true
+  },
+  "metrics": {
+    "micro_f1_pair": 0.4857586742620404,
+    "precision_pair": 0.34753612449055205,
+    "recall_pair": 0.8065348237317282,
+    "micro_f1_pair_type": 0.2967374417400311,
+    "precision_pair_type": 0.21230085216746944,
+    "recall_pair_type": 0.4926913155631986,
+    "micro_f1_pair_novelty": 0.3464526152252719,
+    "precision_pair_novelty": 0.2478695813264172,
+    "recall_pair_novelty": 0.5752364574376613,
+    "micro_f1_pair_type_novelty": 0.21077162092180218,
+    "precision_pair_type_novelty": 0.15079659133012227,
+    "recall_pair_type_novelty": 0.34995700773860705,
+    "macro_f1_type": 0.09891146635902372,
+    "f1_Association": 0.31478199220134706,
+    "f1_Bind": 0.0,
+    "f1_Comparison": 0.0,
+    "f1_Conversion": 0.0,
+    "f1_Cotreatment": 0.0,
+    "f1_Drug_Interaction": 0.0,
+    "f1_Negative_Correlation": 0.14705882352941177,
+    "f1_Positive_Correlation": 0.32945091514143093,
+    "n_pred": 2991
+  }
+}

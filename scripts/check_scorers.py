@@ -27,6 +27,7 @@ from biored.eval import (
     bootstrap,
     count_matrix,
     entity_types,
+    load_preds,
     pair_key,
     score,
 )
@@ -97,6 +98,8 @@ def main():
     ap.add_argument("--pred", action="append", default=[], help="PubTator prediction file (repeatable)")
     ap.add_argument("--raw", default="results/raw/scorer_check")
     ap.add_argument("--out", default="results/runs/scorer_agreement.json")
+    ap.add_argument("--pred-jsonl", action="append", default=[],
+                    help="JSON-lines predictions written by save_preds (repeatable)")
     args = ap.parse_args()
 
     docs = load_pubtator(args.gold)
@@ -110,6 +113,9 @@ def main():
     for p in args.pred:
         pred_docs = load_pubtator(p)
         variants[f"file:{Path(p).name}"] = {d.pmid: list(d.relations) for d in pred_docs}
+
+    for p in args.pred_jsonl:
+        variants[f"jsonl:{Path(p).stem}"] = load_preds(p)
 
     summary, failures = {}, []
     print(f"{'predictions':24} {'level':18} {'check tp/fp/fn':>18} {'official tp/fp/fn':>18}   F1")
@@ -135,7 +141,7 @@ def main():
     if not perfect:
         failures.append(f"score(gold, gold) not perfect: {s}")
 
-    base = next((k for k in variants if k.startswith("file:")), "all_association")
+    base = next((k for k in variants if k.startswith(("file:", "jsonl:"))), "all_association")
     ca = count_matrix(gold, variants[base], "pair_type", types)
     b = bootstrap(ca)
     print(f"bootstrap ({base}, pair+type, {len(ca)} docs): F1 {b['f1']:.4f}, "
