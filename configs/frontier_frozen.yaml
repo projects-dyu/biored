@@ -1,35 +1,35 @@
 prompt: configs/prompt_v4.md
-k: 4
+k: 3
 arms:
   opus-low:
     model: claude-opus-5-5
     effort: low
-    prompt_hash: 92973ab4fd31
+    prompt_hash: 53437089bb9b
   opus-med:
     model: claude-opus-5-5
     effort: medium
-    prompt_hash: 06ca1000f55d
+    prompt_hash: fb4e71b9e426
   sonnet-off:
     model: claude-sonnet-5-5
     effort: medium
     thinking:
       type: between_tools
-    prompt_hash: 840b0b25db0a
+    prompt_hash: 08034e2225b5
   sonnet-on:
     model: claude-sonnet-5-5
     effort: medium
     thinking:
       type: adaptive
-    prompt_hash: 230ec7b9ab1d
+    prompt_hash: 4e4174d5177d
   haiku-off:
     model: claude-haiku-5-5
     effort: medium
     thinking:
       type: disabled
-    prompt_hash: e13f42ac1033
+    prompt_hash: 5abbdf9d028e
   haiku-on:
     model: claude-haiku-5-5
     effort: medium
     thinking:
       type: adaptive
-    prompt_hash: 07b833728550
+    prompt_hash: 82885f41b798
