@@ -1,0 +1,11 @@
+arms:
+  opus-low:   {model: claude-opus-5-5,   effort: low}
+  opus-med:   {model: claude-opus-5-5,   effort: medium}
+  sonnet-off: {model: claude-sonnet-5-5, effort: medium, thinking: {type: between_tools}}
+  sonnet-on:  {model: claude-sonnet-5-5, effort: medium, thinking: {type: adaptive}}
+  haiku-off:  {model: claude-haiku-5-5,  effort: medium, thinking: {type: disabled}}
+  haiku-on:   {model: claude-haiku-5-5,  effort: medium, thinking: {type: adaptive}}
+prices:   # USD per million tokens, standard rates; re-check on the pricing page
+  claude-opus-5-5:   {input: 4.00, output: 20.00, cache_write_5m: 5.00,  cache_write_1h: 8.00, cache_read: 0.20}
+  claude-sonnet-5-5: {input: 2.00, output: 10.00, cache_write_5m: 2.50,  cache_write_1h: 4.00, cache_read: 0.10}
+  claude-haiku-5-5:  {input: 0.10, output: 0.50,  cache_write_5m: 0.125, cache_write_1h: 0.20, cache_read: 0.01}
