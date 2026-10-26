@@ -41,4 +41,4 @@ with the relation type and whether the relation is a new finding of this study.
 3. If the abstract relates none of the listed entities, return {"relations": []}.
 
 ## Association vs Positive_Correlation
-<the guideline's rule for choosing, in one or two sentences>
+

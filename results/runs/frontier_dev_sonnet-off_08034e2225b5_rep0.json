@@ -1,0 +1,49 @@
+{
+  "name": "frontier_dev_sonnet-off_08034e2225b5_rep0",
+  "time": "2026-10-26T02:25:04",
+  "commit": "3763a25",
+  "params": {
+    "arm": "sonnet-off",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "thinking": {
+      "type": "between_tools"
+    },
+    "k": 3,
+    "prompt": "prompt_v4.md",
+    "prompt_hash": "08034e2225b5",
+    "rep": 0,
+    "batch": true,
+    "split": "dev"
+  },
+  "metrics": {
+    "micro_f1_pair": 0.7266760431317393,
+    "precision_pair": 0.7989690721649485,
+    "recall_pair": 0.6663800515907137,
+    "micro_f1_pair_type": 0.5532114392873887,
+    "precision_pair_type": 0.6082474226804123,
+    "recall_pair_type": 0.5073086844368013,
+    "micro_f1_pair_novelty": 0.6225972808251289,
+    "precision_pair_novelty": 0.6845360824742268,
+    "recall_pair_novelty": 0.5709372312983663,
+    "micro_f1_pair_type_novelty": 0.47913736521331457,
+    "precision_pair_type_novelty": 0.5268041237113402,
+    "recall_pair_type_novelty": 0.43938091143594155,
+    "macro_f1_type": 0.525493816767728,
+    "f1_Association": 0.4056508577194753,
+    "f1_Bind": 0.42105263157894735,
+    "f1_Comparison": 0.6666666666666666,
+    "f1_Conversion": 0.0,
+    "f1_Cotreatment": 0.6451612903225806,
+    "f1_Drug_Interaction": 0.6666666666666666,
+    "f1_Negative_Correlation": 0.7282321899736148,
+    "f1_Positive_Correlation": 0.6705202312138728,
+    "failed_rate": 0.0,
+    "dropped_rate": 0.0,
+    "cost_usd": 0.80276145,
+    "tok_input_tokens": 567409,
+    "tok_output_tokens": 43747,
+    "tok_cache_creation_input_tokens": 2391,
+    "tok_cache_read_input_tokens": 236709
+  }
+}
