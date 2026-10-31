@@ -1,16 +1,27 @@
+"""BiomedBERT document-level RE: typed entity markers, one pass per abstract, two heads.
+
+Phase 6 walkthrough code with two changes for this repo:
+- REL_TYPES and NOVELTY come from biored.eval, the labels validate_preds() and score() use.
+- LABELS is built with unpacking, because REL_TYPES is a tuple here.
+"""
 from __future__ import annotations
+
 from collections import defaultdict
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoModel
-from biored.data import Doc, Relation, REL_TYPES, NOVELTY, candidate_pairs
 
-LABELS = ["None"] + REL_TYPES
+from biored.data import Doc, Relation, candidate_pairs
+from biored.eval import NOVELTY, REL_TYPES
+
+LABELS = ["None", *REL_TYPES]
 SHORT = {"GeneOrGeneProduct": "GENE", "DiseaseOrPhenotypicFeature": "DISEASE",
          "ChemicalEntity": "CHEM", "SequenceVariant": "VAR"}
 TAGS = [*SHORT.values(), "ENT"]
 MARKERS = [f"[{t}]" for t in TAGS] + [f"[/{t}]" for t in TAGS]
+
 
 def mark(doc: Doc, eligible: set[str], typed: bool = True):
     """Wrap every eligible mention once. Returns the marked text and, per entity,
@@ -22,7 +33,7 @@ def mark(doc: Doc, eligible: set[str], typed: bool = True):
                 by_span[(m.start, m.end)].append(eid)
     parts, cursor, length, opens = [], 0, 0, defaultdict(list)
     for (s, e), eids in sorted(by_span.items()):
-        if s < cursor:                    # overlapping mention: skipped (count how often)
+        if s < cursor:                    # overlapping mention: skipped
             continue
         tag = SHORT.get(doc.entities[eids[0]].type, "ENT") if typed else "ENT"
         before = doc.text[cursor:s] + " "
@@ -36,6 +47,7 @@ def mark(doc: Doc, eligible: set[str], typed: bool = True):
         cursor = e
     parts.append(doc.text[cursor:])
     return "".join(parts), dict(opens)
+
 
 def encode(doc, tok, eligible, allowed, typed=True, max_len=512, neg_keep=None, rng=None):
     text, opens = mark(doc, eligible, typed)
@@ -57,6 +69,7 @@ def encode(doc, tok, eligible, allowed, typed=True, max_len=512, neg_keep=None, 
         novel.append(NOVELTY.index(r.novel) if r else -100)   # -100 = ignored by the loss
     return {"input_ids": enc["input_ids"], "ent_pos": ent_pos, "pairs": pairs, "labels": labels,
             "novel": novel, "pair_ids": [(ents[i], ents[j]) for i, j in pairs]}
+
 
 def collate(batch, pad_id):
     B, T = len(batch), max(len(x["input_ids"]) for x in batch)
@@ -81,6 +94,7 @@ def collate(batch, pad_id):
             out["novel"][i, :k] = torch.tensor(x["novel"])
     return out
 
+
 class DocRE(nn.Module):
     def __init__(self, name: str, vocab_size: int, dropout: float = 0.1):
         super().__init__()
@@ -104,11 +118,13 @@ class DocRE(nn.Module):
         x = self.mlp(torch.cat([ea + eb, ea * eb, (ea - eb).abs(), cls], dim=-1))
         return self.type_head(x), self.nov_head(x)
 
+
 def loss_fn(type_logits, nov_logits, labels, novel, nov_weight=0.5):
     loss = F.cross_entropy(type_logits.reshape(-1, len(LABELS)).float(), labels.reshape(-1))
     if (novel != -100).any():
         loss = loss + nov_weight * F.cross_entropy(nov_logits.reshape(-1, 2).float(), novel.reshape(-1))
     return loss
+
 
 def decode(type_logits, nov_logits, pair_ids, none_margin=0.0) -> list[Relation]:
     """One document. Predict a relation when the best type beats None by none_margin (tuned on dev)."""
