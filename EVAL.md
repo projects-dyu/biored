@@ -100,3 +100,52 @@ Reading the numbers:
 A near-trivial predictor (every candidate pair = Association/Novel) gets dev pair+type F1 0.155,
 95% CI [0.121, 0.193]. The baseline CIs are 0.077 and 0.100 wide. With 100 abstracts, dev
 differences of a few points are not evidence; use dev for choosing, test for claims.
+
+## Encoder (Phase 6)
+`biored.models.encoder.DocRE` (`scripts/train_encoder.py`, `configs/encoder.yaml`): BiomedBERT-base
+(`microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext`), typed entity markers, one pass
+per abstract (max 512 tokens), pair vectors from logsumexp-pooled entity markers, a 9-way type head
+and a novelty head. 10 epochs, batch 4 abstracts, learning rate 3e-5 (encoder) / 1e-4 (heads),
+novelty loss weight 0.5, fp16 on a Kaggle T4. Trained on train only; all choices made on dev.
+
+**neg_keep** (share of None pairs kept per epoch), seed 13, dev:
+
+| neg_keep | Pair+type F1 | Pair F1 |
+|---|---|---|
+| **0.25 (chosen)** | **0.4647** | 0.6291 |
+| 0.5 | 0.4542 | 0.6261 |
+| 1.0 | 0.4545 | 0.6252 |
+
+The three are within about 1 point, which is within noise on 100 abstracts; 0.25 is taken as the highest.
+
+**Seeds**, neg_keep 0.25, dev. Each seed keeps its best epoch by pair+type F1 and its own
+none_margin from a dev sweep over -0.8..0.4 (step 0.05):
+
+| Seed | Best epoch | none_margin | Pair+type F1 | Pair F1 | Type+novelty F1 | Macro-F1 |
+|---|---|---|---|---|---|---|
+| 13 | 7 | 0.2 | 0.4647 | 0.6291 | 0.3936 | 0.3885 |
+| **21 (headline)** | 9 | -0.2 | **0.4716** | 0.6389 | 0.3906 | 0.3777 |
+| 42 | 10 | 0.25 | 0.4749 | 0.6534 | 0.4069 | 0.4548 |
+| **Mean ± sd** | | | **0.4704 ± 0.0052** | 0.6404 ± 0.0122 | 0.3970 ± 0.0087 | 0.4070 ± 0.0417 |
+
+The headline seed is the median seed by dev pair+type F1. Its none_margin (-0.2) is stored in
+`configs/encoder.yaml`; Phase 10 serves this seed as int8.
+
+**Truncation** (train + dev, 512 tokens after marking): 15.5% of abstracts are truncated and 1.4%
+of reachable gold relations are lost. Test truncation is measured in Phase 8.
+
+Reading the numbers:
+- **Seeds agree.** The pair+type F1 spread is 1.0 point.
+- **Macro-F1 is unstable** (spread ~0.08) because rare types have only 1–9 dev relations.
+- **The margin barely matters.** For every seed, F1 varies by about 1 point anywhere between -0.2
+  and 0.4. Seed 21's -0.2 is an interior peak: F1 falls steadily below it.
+- **Finding pairs is the weaker part.** Type F1 is about 74% of pair F1, a ratio close to published
+  pair-classifier models, so most of the gap is in pair detection. Truncation and the single pass per
+  abstract are likely causes.
+- **Against other systems on dev** (exploratory; dev CIs are about ±4–5 points): well above the
+  baseline (0.2967) and below the frozen Claude prompt (Haiku 0.507–0.525, Sonnet 0.538–0.553,
+  `PROMPT_LOG.md`). Test decides the headline comparisons.
+- Seed 42's best epoch was the last (10). The plan fixes 10 epochs, so more training was not tried.
+- Seed 21's dev metrics were recomputed on CPU in full precision during the margin re-sweep
+  (`scripts/resweep_margin.py`): pair+type F1 0.4716, against 0.4712 in fp16 on GPU.
+- The neg_keep 0.5 and 1.0 runs used the first margin sweep (-0.2..0.4) and were not re-swept.

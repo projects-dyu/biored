@@ -19,7 +19,12 @@
     "neg_keep": 0.25,
     "none_margin": 0.0,
     "seed": 13,
-    "split": "dev"
+    "split": "dev",
+    "margin_grid": [
+      -0.8,
+      0.4,
+      0.05
+    ]
   },
   "metrics": {
     "micro_f1_pair": 0.6290537538871612,

@@ -13,4 +13,4 @@ weight_decay: 0.01
 nov_weight: 0.5
 fp16: true                # set false if DeBERTa's loss goes NaN
 neg_keep: 0.25            # dev sweep (seed 13): 0.25 → 0.4647, 0.5 → 0.4542, 1.0 → 0.4545
-none_margin: 0.0          # per-run value is swept on dev and saved in run_config.json; copy the headline seed's here
+none_margin: -0.2         # headline seed 21; dev sweep -0.8..0.4, step 0.05

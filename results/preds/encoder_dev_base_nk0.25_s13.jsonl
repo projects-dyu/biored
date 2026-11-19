@@ -223,7 +223,7 @@
 {"pmid": "16731636", "e1": "D006332", "e2": "D007545", "type": "Positive_Correlation", "novel": "Novel"}
 {"pmid": "16731636", "e1": "D006332", "e2": "D008790", "type": "Negative_Correlation", "novel": "Novel"}
 {"pmid": "16731636", "e1": "D006984", "e2": "D007545", "type": "Positive_Correlation", "novel": "Novel"}
-{"pmid": "16731636", "e1": "D007545", "e2": "D008790", "type": "Negative_Correlation", "novel": "Novel"}
+{"pmid": "16731636", "e1": "D007545", "e2": "D008790", "type": "Negative_Correlation", "novel": "No"}
 {"pmid": "16820346", "e1": "D000069059", "e2": "D003907", "type": "Negative_Correlation", "novel": "Novel"}
 {"pmid": "16820346", "e1": "D000069059", "e2": "D006973", "type": "Negative_Correlation", "novel": "Novel"}
 {"pmid": "16820346", "e1": "D000069059", "e2": "D013481", "type": "Negative_Correlation", "novel": "Novel"}
