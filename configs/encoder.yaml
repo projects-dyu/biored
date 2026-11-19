@@ -1,0 +1,16 @@
+# Phase 6 encoder. neg_keep and none_margin are chosen on dev; see EVAL.md.
+tag: base                 # run-name tag; change for ablations (untyped, deberta, frac25, ...)
+model: microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext
+typed: true               # false = untyped [ENT] markers (ablation)
+train_frac: 1.0           # 0.25 / 0.5 for the learning curve (whole documents, fixed seed)
+max_len: 512
+batch_size: 4
+epochs: 10
+lr_encoder: 3.0e-5
+lr_head: 1.0e-4
+warmup: 0.1
+weight_decay: 0.01
+nov_weight: 0.5
+fp16: true                # set false if DeBERTa's loss goes NaN
+neg_keep: 0.5             # dev sweep: 0.25, 0.5, 1.0 (seed 13); write the winner here
+none_margin: 0.0          # per-run value is swept on dev and saved in run_config.json; copy the headline seed's here
